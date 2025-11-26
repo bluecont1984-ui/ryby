@@ -12,26 +12,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. AGRESYWNE CZYSZCZENIE DYSKU (Robimy miejsce na SWAP)
+      # 1. ZWALNIANIE MIEJSCA (Bardzo agresywne)
+      # Usuwamy Android SDK preinstalowane przez GitHub, bo Buildozer i tak pobiera swoje.
+      # To zwalnia około 10-15 GB miejsca.
       - name: Free Disk Space
         run: |
-          sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
           sudo apt-get clean
-          df -h  # Pokaż ile mamy miejsca
+          df -h
 
-      # 2. TWORZENIE GIGANTYCZNEGO SWAPU (7GB)
-      # To ratuje proces przed "śmiercią" z braku RAMu
-      - name: Add Huge Swap
+      # 2. TWORZENIE SWAPU (Zbalansowane 3GB)
+      # 3GB wystarczy, żeby Java się nie wywaliła, a nie zapcha nam dysku.
+      - name: Add Swap Space
         run: |
-          sudo fallocate -l 7G /swapfile
+          sudo fallocate -l 3G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
-          free -h  # Pokaż pamięć
+          free -h
 
       # 3. INSTALACJA ZALEŻNOŚCI
       - name: Install Dependencies
@@ -51,14 +53,12 @@ jobs:
         run: |
           pip3 install --upgrade pip
           pip3 install buildozer
-          # Instalujemy starszy Cython, który jest stabilniejszy
           pip3 install "cython==0.29.36"
 
-      # 5. BUDOWANIE (Z limitem pamięci Java)
+      # 5. BUDOWANIE (Ograniczenie pamięci Java do 2.5GB)
       - name: Build APK
         env:
-          # Ograniczamy Javę, żeby zostawiła RAM dla kompilatora C
-          _JAVA_OPTIONS: "-Xmx2048m"
+          _JAVA_OPTIONS: "-Xmx2560m"
         run: |
           yes | buildozer android debug
 
