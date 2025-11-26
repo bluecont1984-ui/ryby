@@ -24,7 +24,8 @@ android.activity_class_name = org.kivy.android.PythonActivity
 android.service_class_name = org.kivy.android.PythonService
 android.allow_backup = True
 android.archs = arm64-v8a
-p4a.branch = develop
+p4a.branch = master
 [buildozer]
 log_level = 2
+
 warn_on_root = 1
