@@ -12,16 +12,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. CZYSZCZENIE DYSKU (Kluczowe dla GitHub Actions)
-      # Usuwamy zbędne oprogramowanie, żeby zrobić miejsce na Android SDK
+      # 1. AGRESYWNE CZYSZCZENIE DYSKU (Robimy miejsce na SWAP)
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
           sudo apt-get clean
+          df -h  # Pokaż ile mamy miejsca
 
-      # 2. INSTALACJA ZALEŻNOŚCI
+      # 2. TWORZENIE GIGANTYCZNEGO SWAPU (7GB)
+      # To ratuje proces przed "śmiercią" z braku RAMu
+      - name: Add Huge Swap
+        run: |
+          sudo fallocate -l 7G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h  # Pokaż pamięć
+
+      # 3. INSTALACJA ZALEŻNOŚCI
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -34,22 +46,23 @@ jobs:
             autoconf libtool automake \
             zip unzip openjdk-17-jdk
 
-      # 3. INSTALACJA BUILDOZERA
+      # 4. INSTALACJA BUILDOZERA
       - name: Install Buildozer & Cython
         run: |
           pip3 install --upgrade pip
-          pip3 install buildozer cython==0.29.36
+          pip3 install buildozer
+          # Instalujemy starszy Cython, który jest stabilniejszy
+          pip3 install "cython==0.29.36"
 
-      # 4. BUDOWANIE (Z FIXEM PAMIĘCI JAVA)
+      # 5. BUDOWANIE (Z limitem pamięci Java)
       - name: Build APK
         env:
-          # Zwiększamy pamięć dla Javy, żeby się nie wyłączała
-          _JAVA_OPTIONS: "-Xmx4096m"
+          # Ograniczamy Javę, żeby zostawiła RAM dla kompilatora C
+          _JAVA_OPTIONS: "-Xmx2048m"
         run: |
-          # Wymuszamy czyste budowanie
           yes | buildozer android debug
 
-      # 5. WYSYŁANIE PLIKU
+      # 6. WYSYŁANIE PLIKU
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
