@@ -12,22 +12,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. PROFESJONALNE CZYSZCZENIE DYSKU (Uwalnia ~30GB)
-      # To jest kluczowa zmiana - używamy dedykowanej akcji
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space-action@v1.3.1
-        with:
-          # Usuwamy wszystko co niepotrzebne do Pythona/Androida
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+      # 1. RĘCZNE CZYSZCZENIE DYSKU (Zastępuje wtyczkę jlumbroso)
+      # Usuwamy zbędne gigabajty, żeby zrobić miejsce na Android SDK
+      - name: Free Disk Space (Manual)
+        run: |
+          echo "Listing space before cleanup..."
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo apt-get clean
+          echo "Listing space after cleanup..."
+          df -h
 
       # 2. TWORZENIE SWAP (4GB RAMu na dysku)
-      # Teraz mamy dużo miejsca na dysku, więc możemy to zrobić bezpiecznie
       - name: Add Swap Space
         run: |
           sudo fallocate -l 4G /swapfile
@@ -56,7 +56,7 @@ jobs:
           pip3 install buildozer
           pip3 install "cython==0.29.36"
 
-      # 5. BUDOWANIE (Bez limitów, bo mamy zasoby)
+      # 5. BUDOWANIE
       - name: Build APK
         run: |
           yes | buildozer android debug
