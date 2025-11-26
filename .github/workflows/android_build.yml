@@ -12,7 +12,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Instalacja zależności (Wersja lekka - bez zbędnych bibliotek wideo)
+      # 1. CZYSZCZENIE DYSKU (Kluczowe dla GitHub Actions)
+      # Usuwamy zbędne oprogramowanie, żeby zrobić miejsce na Android SDK
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo apt-get clean
+
+      # 2. INSTALACJA ZALEŻNOŚCI
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -20,22 +29,27 @@ jobs:
             python3-pip build-essential git python3 \
             python3-dev libsdl2-dev libsdl2-image-dev \
             libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev \
+            libswscale-dev libavformat-dev libavcodec-dev \
             zlib1g-dev libssl-dev libffi-dev \
             autoconf libtool automake \
             zip unzip openjdk-17-jdk
 
-      # 2. Instalacja Buildozera i Cythona
+      # 3. INSTALACJA BUILDOZERA
       - name: Install Buildozer & Cython
         run: |
           pip3 install --upgrade pip
           pip3 install buildozer cython==0.29.36
 
-      # 3. Budowanie (BEZ CLEAN - bo środowisko jest czyste)
-      - name: Build with Buildozer
+      # 4. BUDOWANIE (Z FIXEM PAMIĘCI JAVA)
+      - name: Build APK
+        env:
+          # Zwiększamy pamięć dla Javy, żeby się nie wyłączała
+          _JAVA_OPTIONS: "-Xmx4096m"
         run: |
+          # Wymuszamy czyste budowanie
           yes | buildozer android debug
 
-      # 4. Wysłanie pliku APK
+      # 5. WYSYŁANIE PLIKU
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
