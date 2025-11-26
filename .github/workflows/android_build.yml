@@ -12,24 +12,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. ZWALNIANIE MIEJSCA (Bardzo agresywne)
-      # Usuwamy Android SDK preinstalowane przez GitHub, bo Buildozer i tak pobiera swoje.
-      # To zwalnia około 10-15 GB miejsca.
-      - name: Free Disk Space
-        run: |
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
-          sudo apt-get clean
-          df -h
+      # 1. PROFESJONALNE CZYSZCZENIE DYSKU (Uwalnia ~30GB)
+      # To jest kluczowa zmiana - używamy dedykowanej akcji
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space-action@v1.3.1
+        with:
+          # Usuwamy wszystko co niepotrzebne do Pythona/Androida
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
 
-      # 2. TWORZENIE SWAPU (Zbalansowane 3GB)
-      # 3GB wystarczy, żeby Java się nie wywaliła, a nie zapcha nam dysku.
+      # 2. TWORZENIE SWAP (4GB RAMu na dysku)
+      # Teraz mamy dużo miejsca na dysku, więc możemy to zrobić bezpiecznie
       - name: Add Swap Space
         run: |
-          sudo fallocate -l 3G /swapfile
+          sudo fallocate -l 4G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
@@ -55,10 +56,8 @@ jobs:
           pip3 install buildozer
           pip3 install "cython==0.29.36"
 
-      # 5. BUDOWANIE (Ograniczenie pamięci Java do 2.5GB)
+      # 5. BUDOWANIE (Bez limitów, bo mamy zasoby)
       - name: Build APK
-        env:
-          _JAVA_OPTIONS: "-Xmx2560m"
         run: |
           yes | buildozer android debug
 
