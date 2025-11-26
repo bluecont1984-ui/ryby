@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # KROK 1: Instalacja tylko niezbędnych zależności (Bez Gstreamer/FFmpeg)
+      # 1. Instalacja zależności (Wersja lekka - bez zbędnych bibliotek wideo)
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -24,21 +24,18 @@ jobs:
             autoconf libtool automake \
             zip unzip openjdk-17-jdk
 
-      # KROK 2: Instalacja Buildozera i Cythona
+      # 2. Instalacja Buildozera i Cythona
       - name: Install Buildozer & Cython
         run: |
           pip3 install --upgrade pip
           pip3 install buildozer cython==0.29.36
 
-      # KROK 3: Budowanie
+      # 3. Budowanie (BEZ CLEAN - bo środowisko jest czyste)
       - name: Build with Buildozer
         run: |
-          # Czyszczenie na wszelki wypadek
-          buildozer android clean
-          # Budowanie
           yes | buildozer android debug
 
-      # KROK 4: Wysyłanie pliku
+      # 4. Wysłanie pliku APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
